@@ -1,9 +1,20 @@
 # yoamomiabuela.com
 
-## Play it here (repository root)
+## Play the game files
 
-- **Main game file:** [`snake-arena.html`](./snake-arena.html)
-- **Easy entry alias:** [`game.html`](./game.html)
-- **Landing page:** [`index.html`](./index.html)
+- **Main game:** [`snake-arena.html`](./snake-arena.html)
+- **Quick entry:** [`game.html`](./game.html)
+- **Site root (auto-redirects to game):** [`index.html`](./index.html)
 
-If you are browsing the default branch and still do not see these files yet, it means the branch/PR with the game has not been merged into that branch view.
+## Publish to a website (GitHub Pages)
+
+I added a Pages deploy workflow at `.github/workflows/deploy-pages.yml`.
+
+1. Push this branch to your GitHub repo.
+2. In GitHub: **Settings → Pages**.
+3. Under **Build and deployment**, set **Source = GitHub Actions**.
+4. Push to `main` (or run the workflow manually in **Actions**).
+5. Your live URL will be:
+   - `https://<your-github-username>.github.io/yoamomiabuela.com/`
+
+When you open that URL, it redirects straight to the playable snake game.
