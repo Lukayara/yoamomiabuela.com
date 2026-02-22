@@ -1,6 +1,9 @@
 # yoamomiabuela.com
 
-## Snake game files
+## Play it here (repository root)
 
-- `snake-arena.html`: Complete Slither-style snake game with AI bots.
-- `index.html`: Landing page with a link to launch the game file.
+- **Main game file:** [`snake-arena.html`](./snake-arena.html)
+- **Easy entry alias:** [`game.html`](./game.html)
+- **Landing page:** [`index.html`](./index.html)
+
+If you are browsing the default branch and still do not see these files yet, it means the branch/PR with the game has not been merged into that branch view.
