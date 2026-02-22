@@ -265,7 +265,7 @@
     const SEGMENT_SPACING = 8;
     const FOOD_VALUE = 1;
 
-    const colors = ['#7dd3fc', '#a78bfa', '#fb7185', '#34d399', '#fbbf24', '#f472b6', '#60a5fa', '#4ade80'];
+    const colors = ['#ff4f7d', '#ff8a00', '#ffe14f', '#6cff8a', '#40dbff', '#8a7dff', '#c96dff', '#ff70c9'];
     const botNames = ['Hydra', 'Noodle', 'Cobra', 'Ripple', 'Nova', 'Orbit', 'Pixel', 'Viper', 'Comet', 'Mamba', 'Echo', 'Spiral', 'Quark', 'Venom', 'Byte', 'Lumen', 'Ghost', 'Twist', 'Fang', 'Zen'];
 
     let camera = { x: 0, y: 0, zoom: 1 };
@@ -320,6 +320,8 @@
         angle,
         targetAngle: angle,
         color,
+        baseHue: rand(0, 360),
+        patternOffset: rand(0, Math.PI * 2),
         mass,
         alive: true,
         boostCooldown: rand(0, 1),
@@ -528,9 +530,40 @@
       };
     }
 
+    function drawHexBackground() {
+      const size = 28 * camera.zoom;
+      const w = canvas.width;
+      const h = canvas.height;
+      ctx.fillStyle = '#131322';
+      ctx.fillRect(0, 0, w, h);
+
+      const hexW = size * 1.73;
+      const hexH = size * 1.5;
+      const ox = -((camera.x * 0.11) % hexW);
+      const oy = -((camera.y * 0.11) % hexH);
+
+      ctx.strokeStyle = '#22243a';
+      ctx.lineWidth = Math.max(1, camera.zoom * 0.85);
+      for (let row = -1; row < h / hexH + 2; row++) {
+        for (let col = -1; col < w / hexW + 2; col++) {
+          const cx = col * hexW + ((row % 2) * hexW) / 2 + ox;
+          const cy = row * hexH + oy;
+          ctx.beginPath();
+          for (let i = 0; i < 6; i++) {
+            const a = Math.PI / 3 * i + Math.PI / 6;
+            const x = cx + Math.cos(a) * size;
+            const y = cy + Math.sin(a) * size;
+            if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+          }
+          ctx.closePath();
+          ctx.stroke();
+        }
+      }
+    }
+
     function drawGrid() {
       const step = 120;
-      ctx.strokeStyle = '#1f2947';
+      ctx.strokeStyle = 'rgba(80, 95, 148, 0.35)';
       ctx.lineWidth = 1;
       const left = camera.x - canvas.width / (2 * camera.zoom);
       const right = camera.x + canvas.width / (2 * camera.zoom);
@@ -559,17 +592,23 @@
     function drawFood() {
       for (const f of foods) {
         const p = worldToScreen(f.x, f.y);
-        if (p.x < -20 || p.y < -20 || p.x > canvas.width + 20 || p.y > canvas.height + 20) continue;
+        if (p.x < -24 || p.y < -24 || p.x > canvas.width + 24 || p.y > canvas.height + 24) continue;
         const r = f.radius * camera.zoom;
-        const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r * 2.6);
-        grad.addColorStop(0, `hsla(${f.hue},95%,70%,0.92)`);
-        grad.addColorStop(1, `hsla(${f.hue},95%,70%,0)`);
+
+        ctx.shadowColor = `hsla(${f.hue}, 100%, 70%, 0.95)`;
+        ctx.shadowBlur = 18 * camera.zoom;
+
+        const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r * 3.1);
+        grad.addColorStop(0, `hsla(${f.hue},100%,78%,1)`);
+        grad.addColorStop(0.4, `hsla(${f.hue},100%,62%,0.95)`);
+        grad.addColorStop(1, `hsla(${f.hue},100%,55%,0)`);
         ctx.fillStyle = grad;
         ctx.beginPath();
-        ctx.arc(p.x, p.y, r * 2.2, 0, Math.PI * 2);
+        ctx.arc(p.x, p.y, r * 2.5, 0, Math.PI * 2);
         ctx.fill();
 
-        ctx.fillStyle = `hsl(${f.hue},95%,70%)`;
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = `hsl(${f.hue},100%,66%)`;
         ctx.beginPath();
         ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
         ctx.fill();
@@ -579,20 +618,32 @@
     function drawSnake(s) {
       ctx.lineJoin = 'round';
       ctx.lineCap = 'round';
+      const time = performance.now() * 0.003;
+
       for (let i = s.segments.length - 1; i >= 0; i--) {
         const seg = s.segments[i];
         const p = worldToScreen(seg.x, seg.y);
         const t = 1 - i / s.segments.length;
         const r = (snakeRadius(s) * (0.55 + t * 0.55)) * camera.zoom;
-        ctx.fillStyle = s.ai ? `${s.color}cc` : '#8cffb2';
+        const stripe = Math.sin(i * 0.58 + time * 2.2 + s.patternOffset) * 24;
+        const hue = (s.baseHue + i * 7 + stripe + (s === player ? 42 : 0)) % 360;
+
+        ctx.shadowColor = `hsla(${hue}, 100%, 65%, 0.95)`;
+        ctx.shadowBlur = 12 * camera.zoom;
+        ctx.fillStyle = `hsla(${hue}, 100%, 62%, ${s === player ? 0.98 : 0.92})`;
         ctx.beginPath();
         ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
         ctx.fill();
+
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = 'rgba(255,255,255,0.14)';
+        ctx.lineWidth = Math.max(1, camera.zoom * 1.2);
+        ctx.stroke();
       }
 
       const head = worldToScreen(s.x, s.y);
       const hr = snakeRadius(s) * camera.zoom;
-      ctx.fillStyle = '#0b1020';
+      ctx.fillStyle = '#f7f9ff';
       const eyeSpread = hr * 0.36;
       const eyeForwardX = Math.cos(s.angle) * hr * 0.25;
       const eyeForwardY = Math.sin(s.angle) * hr * 0.25;
@@ -600,15 +651,21 @@
       const perpY = Math.sin(s.angle + Math.PI / 2) * eyeSpread;
 
       ctx.beginPath();
-      ctx.arc(head.x + eyeForwardX + perpX, head.y + eyeForwardY + perpY, Math.max(1.4, hr * 0.12), 0, Math.PI * 2);
-      ctx.arc(head.x + eyeForwardX - perpX, head.y + eyeForwardY - perpY, Math.max(1.4, hr * 0.12), 0, Math.PI * 2);
+      ctx.arc(head.x + eyeForwardX + perpX, head.y + eyeForwardY + perpY, Math.max(1.6, hr * 0.12), 0, Math.PI * 2);
+      ctx.arc(head.x + eyeForwardX - perpX, head.y + eyeForwardY - perpY, Math.max(1.6, hr * 0.12), 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#1b2035';
+      ctx.beginPath();
+      ctx.arc(head.x + eyeForwardX + perpX, head.y + eyeForwardY + perpY, Math.max(0.8, hr * 0.06), 0, Math.PI * 2);
+      ctx.arc(head.x + eyeForwardX - perpX, head.y + eyeForwardY - perpY, Math.max(0.8, hr * 0.06), 0, Math.PI * 2);
       ctx.fill();
     }
 
     function drawWorldBounds() {
       const tl = worldToScreen(0, 0);
       const br = worldToScreen(WORLD_SIZE, WORLD_SIZE);
-      ctx.strokeStyle = '#4b5884';
+      ctx.strokeStyle = '#3f4f82';
       ctx.lineWidth = 3;
       ctx.strokeRect(tl.x, tl.y, br.x - tl.x, br.y - tl.y);
     }
@@ -687,6 +744,7 @@
 
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawHexBackground();
       drawGrid();
       drawWorldBounds();
       drawFood();
